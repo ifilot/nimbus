@@ -1,5 +1,5 @@
 # Nimbus
-Lightweight (restricted) Hartree-Fock program to calculate the wavefunction of the molecular orbitals. The output of the program are a series of density files which can be converted to wavefront object using the [den2obj](https://github.com/ifilot/den2bin) tool.
+Lightweight (restricted) Hartree-Fock program to calculate the wavefunction of the molecular orbitals. The output of the program are a series of density files which can be converted to wavefront object using the [den2obj](https://github.com/ifilot/den2obj) tool.
 
 # Compilation instructions
 
