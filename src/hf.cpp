@@ -56,6 +56,8 @@ void HF::scf() {
     // calculate all two-electron integrals
     unsigned int size = integrator.teindex(this->cgfs->size(),this->cgfs->size(),this->cgfs->size(),this->cgfs->size());
     std::vector<double> tedouble(size, -1.0);
+
+    #pragma omp parallel for schedule(dynamic)
     for(unsigned int i=0; i<this->cgfs->size(); i++) {
         for(unsigned int j=0; j<this->cgfs->size(); j++) {
             unsigned int ij = i*(i+1)/2 + j;

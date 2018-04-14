@@ -45,6 +45,7 @@ int main(int argc, char* argv[]) {
         std::cout << "Executing "<< PROGRAM_NAME << " v." << PROGRAM_VERSION << std::endl;
         std::cout << "Author: Ivo Filot <i.a.w.filot@tue.nl>" << std::endl;
         std::cout << "--------------------------------------------------------------" << std::endl;
+        std::cout << std::endl;
 
         //**************************************
         // parsing values
@@ -60,6 +61,7 @@ int main(int argc, char* argv[]) {
 
         auto end = std::chrono::system_clock::now();
         std::chrono::duration<double> elapsed_seconds = end-start;
+        std::cout << "--------------------------------------------------------------" << std::endl;
         std::cout << "Done in " << elapsed_seconds.count() << " seconds." << std::endl;
 
         return 0;

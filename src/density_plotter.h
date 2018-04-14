@@ -25,6 +25,7 @@
 #include <string>
 #include <Eigen/Eigenvalues>
 #include <boost/format.hpp>
+#include <mutex>
 
 #include "gamma.h"
 #include "cgf.h"

@@ -35,13 +35,49 @@ void DensityPlotter::plot_densities_chgcar(const std::vector<CGF>& cgfs, const E
     static const double range = 10;
     static const double inc = 0.1;
 
-    double volume = range * range * range * 8;
+    std::cout << "Outputting density files:" << std::endl;
+    std::cout << "-------------------------" << std::endl;
+
+    const double volume = range * range * range * 8;
+    const unsigned int sz = (int)(range/inc*2+1);
+
+    std::vector<std::vector<double> > cache;
+    for(unsigned int j=0; j<cgfs.size(); j++) {
+        cache.push_back(std::vector<double>(sz * sz *sz));
+    }
+
+    std::cout << "Pre-caching wavefunction values...";
+    auto start = std::chrono::system_clock::now();
 
     #pragma omp parallel for
+    for(unsigned int zz = 0; zz < sz; zz++) {
+        double z = -range + zz * inc;
+
+        for(unsigned int yy = 0; yy < sz; yy++) {
+            double y = -range + yy * inc;
+
+            for(unsigned int xx = 0; xx < sz; xx++) {
+                double x = -range + xx * inc;
+
+                unsigned int idx = zz * sz * sz + yy * sz + xx;
+
+                for(unsigned int j=0; j<cgfs.size(); j++) {
+                    cache[j][idx] = cgfs[j].get_value(x,y,z);
+                }
+            }
+        }
+    }
+
+    auto end = std::chrono::system_clock::now();
+    std::chrono::duration<double> elapsed_seconds = end-start;
+    std::cout << "[" << elapsed_seconds.count() << " seconds]" << std::endl;
+
     for(unsigned int i=0; i<nr; i++) {
         Eigen::VectorXd coefs = C.col(i);
 
-        std::ofstream outfile((boost::format("%04i.dat") % (i+1)).str());
+        std::string filename = (boost::format("%04i.dat") % (i+1)).str();
+        std::cout << "Writing " << filename << std::endl;
+        std::ofstream outfile(filename);
 
         outfile << "DENSITY MO" << std::endl;
         outfile << "1.0" << std::endl;
@@ -52,29 +88,77 @@ void DensityPlotter::plot_densities_chgcar(const std::vector<CGF>& cgfs, const E
         outfile << "Direct" << std::endl;
         outfile << "  0.0  0.0  0.0" << std::endl;
         outfile << "" << std::endl;
-        outfile << (int)(range/inc*2+1) << " ";
-        outfile << (int)(range/inc*2+1) << " ";
-        outfile << (int)(range/inc*2+1) << std::endl;
+        outfile << sz << " ";
+        outfile << sz << " ";
+        outfile << sz << std::endl;
 
+        std::vector<double> values(sz * sz * sz, 0.0);
+        std::mutex push_back_mutex;
         unsigned int cnt = 0;
-        for(double x=-range; x<=range; x+=inc) {
-            for(double y=-range; y<=range; y+=inc) {
-                for(double z=-range; z<=range; z+=inc) {
 
-                    double sum = 0.0;
+        #pragma omp parallel for
+        for(unsigned int zz = 0; zz < sz; zz++) {
+            double z = -range + zz * inc;
+
+            for(unsigned int yy = 0; yy < sz; yy++) {
+                double y = -range + yy * inc;
+
+                for(unsigned int xx = 0; xx < sz; xx++) {
+                    double x = -range + xx * inc;
+
+                    unsigned int idx = zz * sz * sz + yy * sz + xx;
+
                     for(unsigned int j=0; j<cgfs.size(); j++) {
-                        sum += coefs[j] * cgfs[j].get_value(x,y,z);
-                    }
-
-                    outfile << sum * volume << " ";
-
-                    cnt++;
-                    if(cnt % 5 == 0) {
-                        outfile << std::endl;
-                        cnt = 0;
+                        values[idx] += coefs[j] * cache[j][idx];
                     }
                 }
             }
+        }
+
+        size_t nrthreads = omp_get_max_threads();
+        omp_set_num_threads(nrthreads); // always allocate max threads
+        std::stringstream local[nrthreads];
+
+        #pragma omp parallel
+        {
+            size_t threadnum = omp_get_thread_num();
+
+            // calculate size
+            size_t data = values.size() / nrthreads;
+            size_t rem = values.size() % nrthreads;
+
+            // divide task
+            size_t start = values.size() / nrthreads * threadnum;
+            size_t stop = values.size() / nrthreads * (threadnum + 1);
+            if(threadnum == nrthreads - 1) {
+                stop += rem;
+            }
+
+            char buffer[50];
+            unsigned int cnt = 0;
+
+            for(size_t i=start; i<stop; i++) {
+
+                sprintf(buffer, "% 11.10E", values[i] * volume);
+                local[threadnum] << buffer;
+
+                if((i+1) % 5 == 0) {
+                    local[threadnum] << "\n";
+                } else {
+                    local[threadnum] << " ";
+                }
+
+                if(threadnum == 0) {
+                    if(cnt == 1000) {
+                        cnt = 0;
+                    }
+                    cnt++;
+                }
+            }
+        }
+
+        for(unsigned int i=0; i<nrthreads; i++) {
+            outfile << local[i].str();
         }
 
         outfile.close();
