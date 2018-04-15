@@ -23,7 +23,8 @@
 /**
  * @brief      default constructor
  */
-DensityPlotter::DensityPlotter() {}
+DensityPlotter::DensityPlotter(const std::shared_ptr<Molecule>& _mol) :
+mol(_mol) {}
 
 /**
  * @brief      export electron densities of each MO to a CHGCAR file (VASP density format)
@@ -31,14 +32,18 @@ DensityPlotter::DensityPlotter() {}
  * @param[in]  cgfs  reference to vector of contracted gaussian functionals
  * @param[in]  C     reference to coefficient matrix C
  */
-void DensityPlotter::plot_densities_chgcar(const std::vector<CGF>& cgfs, const Eigen::MatrixXd& C, unsigned int nr) {
-    static const double range = 10;
-    static const double inc = 0.1;
+void DensityPlotter::plot_densities_chgcar(const std::vector<CGF>& cgfs,
+                                           const Eigen::MatrixXd& C,
+                                           unsigned int nr,
+                                           double boxsize,
+                                           double resolution) {
+    const double range = boxsize / 2.0;
+    const double inc = resolution;
+    const double volume = boxsize * boxsize * boxsize;
 
     std::cout << "Outputting density files:" << std::endl;
     std::cout << "-------------------------" << std::endl;
 
-    const double volume = range * range * range * 8;
     const unsigned int sz = (int)(range/inc*2+1);
 
     std::vector<std::vector<double> > cache;
@@ -72,6 +77,12 @@ void DensityPlotter::plot_densities_chgcar(const std::vector<CGF>& cgfs, const E
     std::chrono::duration<double> elapsed_seconds = end-start;
     std::cout << "[" << elapsed_seconds.count() << " seconds]" << std::endl;
 
+    std::cout << "Using boxsize of " << boxsize << " A and resolution of " << resolution << " A." << std::endl;
+
+    // calculate some listings
+    const std::string atomlist = this->generate_atom_list();
+    const std::string coordinatelist = this->generate_atom_coordinates(boxsize);
+
     for(unsigned int i=0; i<nr; i++) {
         Eigen::VectorXd coefs = C.col(i);
 
@@ -79,21 +90,19 @@ void DensityPlotter::plot_densities_chgcar(const std::vector<CGF>& cgfs, const E
         std::cout << "Writing " << filename << std::endl;
         std::ofstream outfile(filename);
 
-        outfile << "DENSITY MO" << std::endl;
+        outfile << "Amplitude of Molecular Orbital #" << (i+1) << std::endl;
         outfile << "1.0" << std::endl;
-        outfile << "20 0 0" << std::endl;
-        outfile << "0 20 0" << std::endl;
-        outfile << "0 0 20" << std::endl;
-        outfile << "1" << std::endl;
-        outfile << "Direct" << std::endl;
-        outfile << "  0.0  0.0  0.0" << std::endl;
+        outfile << boost::format("%12.6f  %12.6f  %12.6f\n") % boxsize % 0.0 % 0.0;
+        outfile << boost::format("%12.6f  %12.6f  %12.6f\n") % 0.0 % boxsize % 0.0;
+        outfile << boost::format("%12.6f  %12.6f  %12.6f\n") % 0.0 % 0.0 % boxsize;
+        outfile << atomlist;
+        outfile << coordinatelist;
         outfile << "" << std::endl;
         outfile << sz << " ";
         outfile << sz << " ";
         outfile << sz << std::endl;
 
         std::vector<double> values(sz * sz * sz, 0.0);
-        std::mutex push_back_mutex;
         unsigned int cnt = 0;
 
         #pragma omp parallel for
@@ -226,4 +235,90 @@ void DensityPlotter::plot_densities_cube(const std::vector<unsigned int>& atoms,
             }
         }
     }
+}
+
+/**
+ * @brief      generate list of atoms for charge file
+ *
+ * @return     string to print
+ */
+std::string DensityPlotter::generate_atom_list() {
+    static const std::vector<std::string> names = {"H", "He", "Li", "Be", "B", "C", "N", "O", "F", "Ne", "Na",
+                                                   "Mg", "Al", "Si", "P", "S", "Cl", "Ar"};
+
+    std::vector<unsigned int> elnrs;
+    std::vector<unsigned int> nrs;
+    for(unsigned int i=0; i<this->mol->get_nr_atoms(); i++) {
+        unsigned int elnr = this->mol->get_atom(i)->get_charge();
+        bool flag = false;
+
+        for(unsigned int j=0; j<elnrs.size(); j++) {
+            if(elnrs[j] == elnr) {
+                flag = true;
+                nrs[j]++;
+                break;
+            }
+        }
+
+        if(!flag) {
+            elnrs.push_back(elnr);
+            nrs.push_back(1);
+        }
+    }
+
+    std::stringstream str;
+    for(unsigned int i=0; i<elnrs.size(); i++) {
+        str << "  " << names[elnrs[i]-1];
+    }
+    str << std::endl;
+
+    for(unsigned int i=0; i<nrs.size(); i++) {
+        str << "  " << nrs[i];
+    }
+    str << std::endl;
+
+    return str.str();
+}
+
+/**
+ * @brief      generate list of atom coordinates for charge file
+ *
+ * @param[in]  boxsize  size of the unit cell
+ *
+ * @return     string to print
+ */
+std::string DensityPlotter::generate_atom_coordinates(double boxsize) {
+    std::vector<unsigned int> elnrs;
+    std::vector<unsigned int> nrs;
+    for(unsigned int i=0; i<this->mol->get_nr_atoms(); i++) {
+        unsigned int elnr = this->mol->get_atom(i)->get_charge();
+        bool flag = false;
+
+        for(unsigned int j=0; j<elnrs.size(); j++) {
+            if(elnrs[j] == elnr) {
+                flag = true;
+                nrs[j]++;
+                break;
+            }
+        }
+
+        if(!flag) {
+            elnrs.push_back(elnr);
+            nrs.push_back(1);
+        }
+    }
+
+    std::stringstream str;
+    str << "Direct" << std::endl;
+
+    for(unsigned int i=0; i<elnrs.size(); i++) {
+        for(unsigned int j=0; j<this->mol->get_nr_atoms(); j++) {
+            if(elnrs[i] == this->mol->get_atom(j)->get_charge()) {
+                vec3 pos = this->mol->get_atom(j)->get_position() / boxsize;
+                str << boost::format("  %12.8f  %12.8f  %12.8f\n") % (pos[0]+0.5) % (pos[1]+0.5) % (pos[2]+0.5);
+            }
+        }
+    }
+
+    return str.str();
 }

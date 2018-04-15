@@ -33,8 +33,16 @@ int main(int argc, char* argv[]) {
         //**************************************
 
         // input filename
-        TCLAP::ValueArg<std::string> arg_input_filename("i","input","Input file (i.e. CHGCAR)",true,"CHGCAR","filename");
+        TCLAP::ValueArg<std::string> arg_input_filename("i","input","Input file (i.e. CHGCAR)", true, "CHGCAR", "filename");
         cmd.add(arg_input_filename);
+
+        // boxsize
+        TCLAP::ValueArg<double> arg_boxsize("b", "boxsize", "Unitcell size", false, 10, "size");
+        cmd.add(arg_boxsize);
+
+        // resolution
+        TCLAP::ValueArg<double> arg_resolution("r", "resolution", "Resolution", false, 0.1, "resolution");
+        cmd.add(arg_resolution);
 
         cmd.parse(argc, argv);
 
@@ -51,13 +59,15 @@ int main(int argc, char* argv[]) {
         // parsing values
         //**************************************
         std::string input_filename = arg_input_filename.getValue();
+        double boxsize = arg_boxsize.getValue();
+        double resolution = arg_resolution.getValue();
 
         auto start = std::chrono::system_clock::now();
 
         auto mol = std::make_shared<Molecule>(input_filename);
         HF hf(mol);
         hf.scf();
-        hf.write_charge_files();
+        hf.write_charge_files(boxsize, resolution);
 
         auto end = std::chrono::system_clock::now();
         std::chrono::duration<double> elapsed_seconds = end-start;

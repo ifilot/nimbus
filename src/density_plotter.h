@@ -29,6 +29,7 @@
 
 #include "gamma.h"
 #include "cgf.h"
+#include "molecule.h"
 
 /**
  * @brief      Class that is able to export electron densities of the molecular
@@ -36,22 +37,30 @@
  */
 class DensityPlotter {
 private:
+    std::shared_ptr<Molecule> mol;
 
 public:
     /**
      * @brief      default constructor
      */
-    DensityPlotter();
+    DensityPlotter(const std::shared_ptr<Molecule>& _mol);
 
     /**
      * @brief      export electron densities of each MO to a CHGCAR file (VASP
      *             density format)
      *
-     * @param[in]  cgfs  reference to vector of contracted gaussian functionals
-     * @param[in]  C     reference to coefficient matrix C
-     * @param[in]  nr    number of orbitals
+     * @param[in]  cgfs        reference to vector of contracted gaussian
+     *                         functionals
+     * @param[in]  C           reference to coefficient matrix C
+     * @param[in]  nr          number of orbitals
+     * @param[in]  boxsize     size of the unitcell
+     * @param[in]  resolution  density object resolution
      */
-    void plot_densities_chgcar(const std::vector<CGF>& cgfs, const Eigen::MatrixXd& C, unsigned int nr);
+    void plot_densities_chgcar(const std::vector<CGF>& cgfs,
+                               const Eigen::MatrixXd& C,
+                               unsigned int nr,
+                               double boxsize,
+                               double resolution);
 
     /**
      * @brief      export electron densities of each MO to a cube file (Gaussian
@@ -68,6 +77,21 @@ public:
                              const Eigen::MatrixXd& C);
 
 private:
+    /**
+     * @brief      generate list of atoms for charge file
+     *
+     * @return     string to print
+     */
+    std::string generate_atom_list();
+
+    /**
+     * @brief      generate list of atom coordinates for charge file
+     *
+     * @param[in]  boxsize  size of the unit cell
+     *
+     * @return     string to print
+     */
+    std::string generate_atom_coordinates(double boxsize);
 
 };
 

@@ -25,6 +25,9 @@ mol(_mol) {
     this->cgfs = this->mol->get_cgfs();
 }
 
+/**
+ * @brief      perform self-consistent field calculation
+ */
 void HF::scf() {
     // Construct matrices to hold values for the overlap,
     // kinetic and two nuclear integral values, respectively.
@@ -239,11 +242,17 @@ void HF::scf() {
     std::cout << std::endl;
 }
 
-void HF::write_charge_files() {
+/**
+ * @brief      Writes wavefunction amplitude files
+ *
+ * @param[in]  boxsize     boxsize
+ * @param[in]  resolution  resolution
+ */
+void HF::write_charge_files(double boxsize, double resolution) {
     // construct density plotter object and export the electron density of
     // each molecular orbital in our system to a seperate file
-    DensityPlotter dp;
+    DensityPlotter dp(this->mol);
 
     // output the molecular orbital density to a set of files
-    dp.plot_densities_chgcar(*this->cgfs, this->C, this->mol->get_nr_elec() / 2 + 1);
+    dp.plot_densities_chgcar(*this->cgfs, this->C, this->mol->get_nr_elec() / 2 + 1, boxsize, resolution);
 }

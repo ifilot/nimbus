@@ -40,9 +40,18 @@ private:
 public:
     HF(const std::shared_ptr<Molecule>& _mol);
 
+    /**
+     * @brief      perform self-consistent field calculation
+     */
     void scf();
 
-    void write_charge_files();
+    /**
+     * @brief      Writes wavefunction amplitude files
+     *
+     * @param[in]  boxsize     boxsize
+     * @param[in]  resolution  resolution
+     */
+    void write_charge_files(double boxsize, double resolution);
 
 private:
 
