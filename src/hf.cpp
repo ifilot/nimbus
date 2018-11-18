@@ -31,7 +31,7 @@ mol(_mol) {
 void HF::scf() {
     // Construct matrices to hold values for the overlap,
     // kinetic and two nuclear integral values, respectively.
-    Eigen::MatrixXd S = Eigen::MatrixXd::Zero(this->cgfs->size(), this->cgfs->size());
+    S = Eigen::MatrixXd::Zero(this->cgfs->size(), this->cgfs->size());
     Eigen::MatrixXd T = Eigen::MatrixXd::Zero(this->cgfs->size(), this->cgfs->size());
     Eigen::MatrixXd V = Eigen::MatrixXd::Zero(this->cgfs->size(), this->cgfs->size());
 
@@ -270,6 +270,15 @@ void HF::write_matrices(const std::string& filename) {
     for(unsigned int i=0; i<Ct.rows(); i++) {
         for(unsigned int j=0; j<Ct.cols(); j++) {
             out << boost::format("%12.6f  ") % Ct(i,j);
+        }
+        out << std::endl;
+    }
+
+    out << std::endl << "Overlap matrix S:" << std::endl;
+
+    for(unsigned int i=0; i<S.rows(); i++) {
+        for(unsigned int j=0; j<S.cols(); j++) {
+            out << boost::format("%12.6f  ") % S(i,j);
         }
         out << std::endl;
     }

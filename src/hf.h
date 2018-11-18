@@ -35,6 +35,7 @@ private:
     const std::vector<CGF>* cgfs;
     Integrator integrator;
     std::shared_ptr<Molecule> mol;
+    Eigen::MatrixXd S;
     Eigen::MatrixXd C;
     Eigen::VectorXd orbital_energies;
 
