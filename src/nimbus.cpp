@@ -68,6 +68,7 @@ int main(int argc, char* argv[]) {
         HF hf(mol);
         hf.scf();
         hf.write_charge_files(boxsize, resolution);
+        hf.write_matrices("coefficients.dat");
 
         auto end = std::chrono::system_clock::now();
         std::chrono::duration<double> elapsed_seconds = end-start;

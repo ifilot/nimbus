@@ -36,6 +36,7 @@ private:
     Integrator integrator;
     std::shared_ptr<Molecule> mol;
     Eigen::MatrixXd C;
+    Eigen::VectorXd orbital_energies;
 
 public:
     HF(const std::shared_ptr<Molecule>& _mol);
@@ -52,6 +53,13 @@ public:
      * @param[in]  resolution  resolution
      */
     void write_charge_files(double boxsize, double resolution);
+
+    /**
+     * @brief      Write coefficient matrix and orbital energies to file
+     *
+     * @param[in]  filename  The filename
+     */
+    void write_matrices(const std::string& filename);
 
 private:
 

@@ -118,9 +118,6 @@ void HF::scf() {
     // keep track of number of iterations
     unsigned int loop_counter = 0;
 
-    // construct object to store eigenvectors and eigenvalues of the Fock-matrix in
-    Eigen::VectorXd orbital_energies;
-
     // calculate nuclear repulsion
     double e_nuc = 0.0;
     for(unsigned int i=0; i<this->mol->get_nr_atoms(); i++) {
@@ -195,7 +192,7 @@ void HF::scf() {
 
         // Obtain true coefficient matrix using the transformation matrix
         this->C = X * Cc;
-        orbital_energies = en.diagonal();
+        this->orbital_energies = en.diagonal();
 
         /*********************************
          *
@@ -236,7 +233,7 @@ void HF::scf() {
     std::cout << "-----+--------------" << std::endl;
     std::cout << "  #  | Energy" << std::endl;
     std::cout << "-----+--------------" << std::endl;
-    for(unsigned int i=0; i<10; i++) {
+    for(unsigned int i=0; i<orbital_energies.size(); i++) {
         std::cout << (boost::format("%4i | %12.8f") % (i+1) % orbital_energies[i]).str() << std::endl;
     }
     std::cout << std::endl;
@@ -255,4 +252,33 @@ void HF::write_charge_files(double boxsize, double resolution) {
 
     // output the molecular orbital density to a set of files
     dp.plot_densities_chgcar(*this->cgfs, this->C, this->mol->get_nr_elec() / 2 + 1, boxsize, resolution);
+}
+
+/**
+ * @brief      Write coefficient matrix and orbital energies to file
+ *
+ * @param[in]  filename  The filename
+ */
+void HF::write_matrices(const std::string& filename) {
+    std::ofstream out(filename);
+
+    out << "Note: Eigenvectors are written as rows!" << std::endl;
+    out << std::endl << "Eigenvectors:" << std::endl;
+
+    auto Ct = this->C.transpose();
+
+    for(unsigned int i=0; i<Ct.rows(); i++) {
+        for(unsigned int j=0; j<Ct.cols(); j++) {
+            out << boost::format("%12.6f  ") % Ct(i,j);
+        }
+        out << std::endl;
+    }
+
+    out << std::endl;
+    out << "Energies:" << std::endl;
+    for(unsigned int i=0; i<this->orbital_energies.size(); i++) {
+        out << boost::format("%04i  %12.6f") % (i+1) % this->orbital_energies[i] << std::endl;
+    }
+
+    out.close();
 }
