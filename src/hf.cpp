@@ -251,7 +251,7 @@ void HF::write_charge_files(double boxsize, double resolution) {
     DensityPlotter dp(this->mol);
 
     // output the molecular orbital density to a set of files
-    dp.plot_densities_chgcar(*this->cgfs, this->C, this->mol->get_nr_elec() / 2 + 1, boxsize, resolution);
+    dp.plot_densities_chgcar(*this->cgfs, this->C, this->orbital_energies.size(), boxsize, resolution);
 }
 
 /**
