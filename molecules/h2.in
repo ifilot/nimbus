@@ -1,5 +1,5 @@
 dihydrogen
-sto3g
+../basis/sto3g.dat
 2
 H 0.00 0.00 0.00
 H 0.00 0.00 0.74

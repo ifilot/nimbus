@@ -76,7 +76,7 @@ void Molecule::read_molecule_from_file(const std::string& filename) {
     getline(infile, line);
     std::string basis(line);
     boost::trim(basis);
-    std::string basis_file = "basis/" + basis + ".dat";
+    std::string basis_file = basis;
 
     std::getline(infile, line); // grab number of atoms
     unsigned int nratoms = boost::lexical_cast<unsigned int>(line);
@@ -129,12 +129,16 @@ void Molecule::set_basis_set(const std::string& basis_file) {
     }
 
     // open the file
-    if (!boost::filesystem::exists("../" + basis_file)) {
+    if (!boost::filesystem::exists(basis_file)) {
         std::cerr << "Please make sure you are running nimbus from the build directory..." << std::endl;
-        throw std::runtime_error("Cannot open ../" + basis_file + "!");
+        throw std::runtime_error("Cannot find " + basis_file + "!");
     }
 
-    std::ifstream infile("../" + basis_file);
+    std::ifstream infile(basis_file);
+    if(!infile.good()) {
+        throw std::runtime_error("Error opening " + basis_file + "!");
+    }
+
     std::string line;
     std::vector<CGF> bs_cgfs;
     while(std::getline(infile, line)) {

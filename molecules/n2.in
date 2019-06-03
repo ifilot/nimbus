@@ -1,5 +1,5 @@
 dinitrogen
-sto3g
+../basis/sto3g.dat
 2
 N 0.00 0.00 0.00
 N 0.00 0.00 1.0975 
